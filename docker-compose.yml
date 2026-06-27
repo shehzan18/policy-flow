@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: policygate-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: policygate
+      POSTGRES_PASSWORD: policygate
+      POSTGRES_DB: policygate
+    ports:
+      - "5432:5432"
+    volumes:
+      - policygate_pgdata:/var/lib/postgresql/data
+
+volumes:
+  policygate_pgdata:
