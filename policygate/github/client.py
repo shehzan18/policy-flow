@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+
+from github import Auth, Github
+
+
+@dataclass
+class ChangedFile:
+    path: str
+    status: str              # added | modified | removed
+    patch: str | None        # unified-diff hunk for this file
+    content: str             # full file content at PR head ("" if removed)
+
+
+@dataclass
+class PRData:
+    pr_id: str
+    repo: str
+    branch: str
+    diff: str                # all per-file patches concatenated
+    files: dict[str, str]    # path -> full content
+    changed: list[ChangedFile]
+
+
+def _client() -> Github:
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        raise RuntimeError("GITHUB_TOKEN not set in .env")
+    return Github(auth=Auth.Token(token))
+
+
+def fetch_pr(repo_full_name: str, pr_number: int, py_only: bool = True) -> PRData:
+    """Pull a PR's changed Python files + diff + content into a PRData."""
+    gh = _client()
+    repo = gh.get_repo(repo_full_name)
+    pr = repo.get_pull(pr_number)
+
+    changed: list[ChangedFile] = []
+    files: dict[str, str] = {}
+    diff_parts: list[str] = []
+
+    for f in pr.get_files():
+        if py_only and not f.filename.endswith(".py"):
+            continue
+
+        content = ""
+        if f.status != "removed":
+            try:
+                blob = repo.get_contents(f.filename, ref=pr.head.sha)
+                content = blob.decoded_content.decode("utf-8", "replace")
+            except Exception:
+                content = ""
+
+        if f.patch:
+            diff_parts.append(f"--- {f.filename}\n{f.patch}")
+
+        changed.append(ChangedFile(
+            path=f.filename, status=f.status, patch=f.patch, content=content,
+        ))
+        if content:
+            files[f.filename] = content
+
+    return PRData(
+        pr_id=str(pr_number),
+        repo=repo_full_name,
+        branch=pr.head.ref,
+        diff="\n\n".join(diff_parts),
+        files=files,
+        changed=changed,
+    )

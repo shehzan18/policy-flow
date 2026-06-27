@@ -4,14 +4,16 @@ from langgraph.graph import StateGraph, START, END
 
 from policygate.graph.state import PRState, PolicyViolation
 
+from policygate.graph.nodes.ingest import ingest
+
 
 # ---- stub nodes (Part 1: fake logic, real wiring) -------------------------
 # Each returns a partial state update. We replace these one by one in later parts.
 
-def ingest(state: PRState) -> dict:
-    print(f"[ingest]    PR #{state['pr_id']} on {state['repo']}")
-    # later: fetch real diff + files from GitHub
-    return {"files": {"app.py": "# fake file content"}}
+# def ingest(state: PRState) -> dict:
+#     print(f"[ingest]    PR #{state['pr_id']} on {state['repo']}")
+#     # later: fetch real diff + files from GitHub
+#     return {"files": {"app.py": "# fake file content"}}
 
 
 def decompose(state: PRState) -> dict:
