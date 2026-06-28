@@ -70,3 +70,9 @@ def fetch_pr(repo_full_name: str, pr_number: int, py_only: bool = True) -> PRDat
         files=files,
         changed=changed,
     )
+
+def post_pr_comment(repo_full_name: str, pr_number: int, body: str) -> None:
+    """Post a comment on a PR (used to deliver verified fixes / rejection feedback)."""
+    gh = _client()
+    pr = gh.get_repo(repo_full_name).get_pull(pr_number)
+    pr.create_issue_comment(body)

@@ -23,6 +23,10 @@ def main():
         cfg = {"configurable": {"thread_id": f"pr-{pr_id}"}}
 
         if mode == "run":
+            try:
+                saver.delete_thread(f"pr-{pr_id}")  # clean slate for a repeatable run
+            except Exception:
+                pass
             result = app.invoke(_empty_state(pr_id=pr_id, repo=REPO), config=cfg)
         elif mode in ("approve", "reject"):
             result = app.invoke(Command(resume=mode), config=cfg)

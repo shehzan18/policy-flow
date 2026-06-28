@@ -10,6 +10,7 @@ from policygate.graph.nodes.specialists import (
 from policygate.graph.nodes.fix_generator import fix_generator, MAX_RETRIES
 from policygate.graph.nodes.sandbox_verify import sandbox_verify
 from policygate.graph.nodes.human_gate import human_gate
+from policygate.graph.nodes.git_ops import git_ops
 
 
 # ---- stubs still to be replaced in later parts ----------------------------
@@ -56,6 +57,7 @@ def build_graph(checkpointer=None):
     g.add_node("sandbox", sandbox_verify)
     g.add_node("gate", human_gate)
     g.add_node("report", report)
+    g.add_node("git_ops", git_ops)
 
     g.add_edge(START, "ingest")
     g.add_edge("ingest", "decompose")
@@ -71,7 +73,8 @@ def build_graph(checkpointer=None):
     g.add_edge("merge", "fix")
     g.add_edge("fix", "sandbox")
     g.add_conditional_edges("sandbox", route_after_verify, {"fix": "fix", "gate": "gate"})
-    g.add_edge("gate", "report")
+    g.add_edge("gate", "git_ops")
+    g.add_edge("git_ops", "report")
     g.add_edge("report", END)
 
     return g.compile(checkpointer=checkpointer)
