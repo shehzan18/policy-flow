@@ -2,38 +2,21 @@ from __future__ import annotations
 
 from langgraph.graph import StateGraph, START, END
 
-from policygate.graph.state import PRState, PolicyViolation
-
+from policygate.graph.state import PRState
 from policygate.graph.nodes.ingest import ingest
+from policygate.graph.nodes.specialists import (
+    security_specialist, perf_specialist, coverage_specialist,
+)
+
+from policygate.graph.nodes.fix_generator import fix_generator
+from policygate.graph.nodes.sandbox_verify import sandbox_verify
 
 
-# ---- stub nodes (Part 1: fake logic, real wiring) -------------------------
-# Each returns a partial state update. We replace these one by one in later parts.
-
-# def ingest(state: PRState) -> dict:
-#     print(f"[ingest]    PR #{state['pr_id']} on {state['repo']}")
-#     # later: fetch real diff + files from GitHub
-#     return {"files": {"app.py": "# fake file content"}}
-
+# ---- stubs still to be replaced in later parts ----------------------------
 
 def decompose(state: PRState) -> dict:
     print(f"[decompose] splitting {len(state['files'])} file(s) into hunks")
     return {}
-
-
-def security_specialist(state: PRState) -> dict:
-    print("[security]  scanning...")
-    return {"violations": [_stub_violation("SEC-SQLI", "app.py", 10)]}
-
-
-def perf_specialist(state: PRState) -> dict:
-    print("[perf]      scanning...")
-    return {"violations": [_stub_violation("PERF-NPLUSONE", "app.py", 25)]}
-
-
-def coverage_specialist(state: PRState) -> dict:
-    print("[coverage]  scanning...")
-    return {"violations": [_stub_violation("TEST-COVERAGE", "app.py", 40)]}
 
 
 def merge_findings(state: PRState) -> dict:
@@ -48,15 +31,6 @@ def report(state: PRState) -> dict:
     return {}
 
 
-def _stub_violation(rule_id, file, line) -> PolicyViolation:
-    return PolicyViolation(
-        id=f"{rule_id}:{file}:{line}", rule_id=rule_id, severity="high",
-        file=file, line_start=line, line_end=line, evidence="<stub>",
-        status="detected", retries=0, proving_test=None,
-        proposed_fix=None, sandbox_result=None,
-    )
-
-
 # ---- graph assembly -------------------------------------------------------
 
 def build_graph():
@@ -69,6 +43,8 @@ def build_graph():
     g.add_node("coverage", coverage_specialist)
     g.add_node("merge", merge_findings)
     g.add_node("report", report)
+    g.add_node("fix", fix_generator)
+    g.add_node("sandbox", sandbox_verify)
 
     g.add_edge(START, "ingest")
     g.add_edge("ingest", "decompose")
@@ -83,7 +59,9 @@ def build_graph():
     g.add_edge("perf", "merge")
     g.add_edge("coverage", "merge")
 
-    g.add_edge("merge", "report")
+    g.add_edge("merge", "fix")
+    g.add_edge("fix", "sandbox")
+    g.add_edge("sandbox", "report")
     g.add_edge("report", END)
 
     return g.compile()
@@ -98,6 +76,5 @@ def _empty_state(pr_id: str, repo: str) -> PRState:
 
 if __name__ == "__main__":
     app = build_graph()
-    print("=== running PolicyGate skeleton on fake data ===\n")
-    final = app.invoke(_empty_state(pr_id="42", repo="shehzan18/demo"))
+    final = app.invoke(_empty_state(pr_id="1", repo="shehzan18/policy-flow-demo"))
     print(f"\n=== final state has {len(final['violations'])} violations ===")
