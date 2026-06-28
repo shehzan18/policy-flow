@@ -10,6 +10,7 @@ from policygate.graph.nodes.specialists import (
 
 from policygate.graph.nodes.fix_generator import fix_generator
 from policygate.graph.nodes.sandbox_verify import sandbox_verify
+from policygate.graph.nodes.fix_generator import MAX_RETRIES
 
 
 # ---- stubs still to be replaced in later parts ----------------------------
@@ -32,6 +33,13 @@ def report(state: PRState) -> dict:
 
 
 # ---- graph assembly -------------------------------------------------------
+def route_after_verify(state: PRState) -> str:
+    """If any fix failed but still has retries left, loop back to fix; else finish."""
+    for v in state["violations"]:
+        if v["status"] == "failed" and v["retries"] < MAX_RETRIES:
+            return "fix"
+    return "report"
+
 
 def build_graph():
     g = StateGraph(PRState)
@@ -61,7 +69,7 @@ def build_graph():
 
     g.add_edge("merge", "fix")
     g.add_edge("fix", "sandbox")
-    g.add_edge("sandbox", "report")
+    g.add_conditional_edges("sandbox", route_after_verify, {"fix": "fix", "report": "report"})
     g.add_edge("report", END)
 
     return g.compile()
