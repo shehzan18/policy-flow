@@ -7,10 +7,9 @@ from policygate.graph.nodes.ingest import ingest
 from policygate.graph.nodes.specialists import (
     security_specialist, perf_specialist, coverage_specialist,
 )
-
-from policygate.graph.nodes.fix_generator import fix_generator
+from policygate.graph.nodes.fix_generator import fix_generator, MAX_RETRIES
 from policygate.graph.nodes.sandbox_verify import sandbox_verify
-from policygate.graph.nodes.fix_generator import MAX_RETRIES
+from policygate.graph.nodes.human_gate import human_gate
 
 
 # ---- stubs still to be replaced in later parts ----------------------------
@@ -32,16 +31,19 @@ def report(state: PRState) -> dict:
     return {}
 
 
-# ---- graph assembly -------------------------------------------------------
+# ---- routing --------------------------------------------------------------
+
 def route_after_verify(state: PRState) -> str:
-    """If any fix failed but still has retries left, loop back to fix; else finish."""
+    """Retry failed fixes (while attempts remain), otherwise go to the human gate."""
     for v in state["violations"]:
         if v["status"] == "failed" and v["retries"] < MAX_RETRIES:
             return "fix"
-    return "report"
+    return "gate"
 
 
-def build_graph():
+# ---- graph assembly -------------------------------------------------------
+
+def build_graph(checkpointer=None):
     g = StateGraph(PRState)
 
     g.add_node("ingest", ingest)
@@ -50,29 +52,29 @@ def build_graph():
     g.add_node("perf", perf_specialist)
     g.add_node("coverage", coverage_specialist)
     g.add_node("merge", merge_findings)
-    g.add_node("report", report)
     g.add_node("fix", fix_generator)
     g.add_node("sandbox", sandbox_verify)
+    g.add_node("gate", human_gate)
+    g.add_node("report", report)
 
     g.add_edge(START, "ingest")
     g.add_edge("ingest", "decompose")
 
-    # fan-out: decompose -> 3 specialists in parallel
     g.add_edge("decompose", "security")
     g.add_edge("decompose", "perf")
     g.add_edge("decompose", "coverage")
 
-    # fan-in: all 3 -> merge
     g.add_edge("security", "merge")
     g.add_edge("perf", "merge")
     g.add_edge("coverage", "merge")
 
     g.add_edge("merge", "fix")
     g.add_edge("fix", "sandbox")
-    g.add_conditional_edges("sandbox", route_after_verify, {"fix": "fix", "report": "report"})
+    g.add_conditional_edges("sandbox", route_after_verify, {"fix": "fix", "gate": "gate"})
+    g.add_edge("gate", "report")
     g.add_edge("report", END)
 
-    return g.compile()
+    return g.compile(checkpointer=checkpointer)
 
 
 def _empty_state(pr_id: str, repo: str) -> PRState:
@@ -80,9 +82,3 @@ def _empty_state(pr_id: str, repo: str) -> PRState:
         pr_id=pr_id, repo=repo, branch="main", diff="", files={},
         policy={}, violations=[], human_decision=None, messages=[],
     )
-
-
-if __name__ == "__main__":
-    app = build_graph()
-    final = app.invoke(_empty_state(pr_id="1", repo="shehzan18/policy-flow-demo"))
-    print(f"\n=== final state has {len(final['violations'])} violations ===")
