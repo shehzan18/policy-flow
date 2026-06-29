@@ -1,0 +1,155 @@
+{
+  "sqli_concat": {
+    "files": [
+      "app.py"
+    ],
+    "expected": [
+      [
+        "SEC-SQLI",
+        "app.py"
+      ]
+    ]
+  },
+  "sqli_fstring": {
+    "files": [
+      "app.py"
+    ],
+    "expected": [
+      [
+        "SEC-SQLI",
+        "app.py"
+      ]
+    ]
+  },
+  "sqli_format": {
+    "files": [
+      "app.py"
+    ],
+    "expected": [
+      [
+        "SEC-SQLI",
+        "app.py"
+      ]
+    ]
+  },
+  "sqli_clean_param": {
+    "files": [
+      "app.py"
+    ],
+    "expected": []
+  },
+  "validation_raw_body": {
+    "files": [
+      "app.py"
+    ],
+    "expected": [
+      [
+        "SEC-VALIDATION",
+        "app.py"
+      ]
+    ]
+  },
+  "validation_raw_param": {
+    "files": [
+      "app.py"
+    ],
+    "expected": [
+      [
+        "SEC-VALIDATION",
+        "app.py"
+      ]
+    ]
+  },
+  "validation_clean_pydantic": {
+    "files": [
+      "app.py"
+    ],
+    "expected": []
+  },
+  "nplus1_loop_query": {
+    "files": [
+      "app.py"
+    ],
+    "expected": [
+      [
+        "PERF-NPLUSONE",
+        "app.py"
+      ]
+    ]
+  },
+  "nplus1_orm_loop": {
+    "files": [
+      "app.py"
+    ],
+    "expected": [
+      [
+        "PERF-NPLUSONE",
+        "app.py"
+      ]
+    ]
+  },
+  "nplus1_clean_batch": {
+    "files": [
+      "app.py"
+    ],
+    "expected": []
+  },
+  "coverage_untested_fn": {
+    "files": [
+      "calc.py"
+    ],
+    "expected": [
+      [
+        "TEST-COVERAGE",
+        "calc.py"
+      ]
+    ]
+  },
+  "coverage_untested_two": {
+    "files": [
+      "bank.py"
+    ],
+    "expected": [
+      [
+        "TEST-COVERAGE",
+        "bank.py"
+      ]
+    ]
+  },
+  "coverage_clean_tested": {
+    "files": [
+      "calc.py",
+      "test_calc.py"
+    ],
+    "expected": []
+  },
+  "mixed_sqli_nplus1": {
+    "files": [
+      "app.py"
+    ],
+    "expected": [
+      [
+        "SEC-SQLI",
+        "app.py"
+      ],
+      [
+        "PERF-NPLUSONE",
+        "app.py"
+      ]
+    ]
+  },
+  "clean_pure_math": {
+    "files": [
+      "util.py",
+      "test_util.py"
+    ],
+    "expected": []
+  },
+  "clean_string_helpers": {
+    "files": [
+      "text.py",
+      "test_text.py"
+    ],
+    "expected": []
+  }
+}
