@@ -17,11 +17,11 @@ def sandbox_verify(state: PRState) -> dict:
         fixed = {**original, v["file"]: v["proposed_fix"]}
 
         print(f"[sandbox]   {v['rule_id']}: proving test on ORIGINAL (expect FAIL)...")
-        o = run_pytest(original, TEST_FILE, v["proving_test"])
+        o = run_pytest(original, TEST_FILE, v["proving_test"], requirements=state.get("requirements", ""))
         orig_failed = o["exit_code"] != 0
 
         print(f"[sandbox]   {v['rule_id']}: proving test on FIXED (expect PASS)...")
-        f = run_pytest(fixed, TEST_FILE, v["proving_test"])
+        f = run_pytest(fixed, TEST_FILE, v["proving_test"], requirements=state.get("requirements", ""))
         fix_passed = f["exit_code"] == 0
 
         suite_passed = True  # demo repo has no existing suite; real repos run their own tests

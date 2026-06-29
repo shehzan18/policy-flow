@@ -7,6 +7,8 @@ from policygate.rules.catalog import RULES
 from policygate.graph.state import PRState
 
 MAX_RETRIES = 2
+MAX_FIXES_PER_RUN = 3
+_SEV = {"critical": 0, "high": 1, "medium": 2}
 
 
 class _Fix(BaseModel):
@@ -24,14 +26,24 @@ def _module_name(path: str) -> str:
 
 def fix_generator(state: PRState) -> dict:
     print("[fix]       generating fixes...")
+
+    # safety cap: auto-fix only the top-N detected (by severity) per run
+    detected = [
+        v for v in state["violations"]
+        if v["status"] == "detected" and RULES[v["rule_id"]].category != "coverage"
+    ]
+    detected.sort(key=lambda v: _SEV.get(v["severity"], 3))
+    to_fix_ids = {v["id"] for v in detected[:MAX_FIXES_PER_RUN]}
+
     updated = []
     for v in state["violations"]:
-        is_first = v["status"] == "detected"
+        is_first = v["status"] == "detected" and v["id"] in to_fix_ids
         is_retry = v["status"] == "failed" and v["retries"] < MAX_RETRIES
         if not (is_first or is_retry):
             continue
         if RULES[v["rule_id"]].category == "coverage":
             continue
+        # ... the rest of the loop body stays exactly the same ...
 
         rule = RULES[v["rule_id"]]
         file_content = state["files"].get(v["file"], "")

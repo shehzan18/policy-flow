@@ -84,5 +84,5 @@ def build_graph(checkpointer=None, store=None):
 def _empty_state(pr_id: str, repo: str) -> PRState:
     return PRState(
         pr_id=pr_id, repo=repo, branch="main", diff="", files={},
-        policy={}, violations=[], human_decision=None, messages=[],
+        policy={}, requirements="", violations=[], human_decision=None, messages=[],
     )

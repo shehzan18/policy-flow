@@ -62,3 +62,4 @@ class PRState(TypedDict):
     violations: Annotated[list[PolicyViolation], merge_violations]
     human_decision: Optional[str]
     messages: Annotated[list, add_messages]
+    requirements: str

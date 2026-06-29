@@ -76,3 +76,30 @@ def post_pr_comment(repo_full_name: str, pr_number: int, body: str) -> None:
     gh = _client()
     pr = gh.get_repo(repo_full_name).get_pull(pr_number)
     pr.create_issue_comment(body)
+
+def list_python_files(repo_full_name: str, limit: int = 30) -> list[str]:
+    """List .py file paths in a repo (skips tests/migrations) via the git tree."""
+    gh = _client()
+    repo = gh.get_repo(repo_full_name)
+    tree = repo.get_git_tree(repo.default_branch, recursive=True).tree
+    paths = [
+        t.path for t in tree
+        if t.type == "blob" and t.path.endswith(".py")
+        and "test" not in t.path.lower() and "migration" not in t.path.lower()
+        and not t.path.endswith("__init__.py")
+    ]
+    return paths[:limit]
+
+
+def fetch_files(repo_full_name: str, paths: list[str]) -> dict:
+    """Fetch the content of specific files from a repo's default branch."""
+    gh = _client()
+    repo = gh.get_repo(repo_full_name)
+    out = {}
+    for p in paths:
+        try:
+            blob = repo.get_contents(p)
+            out[p] = blob.decoded_content.decode("utf-8", "replace")
+        except Exception:
+            pass
+    return out

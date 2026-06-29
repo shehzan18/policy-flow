@@ -10,20 +10,26 @@ def run_pytest(
     files: dict[str, str],
     test_filename: str,
     test_content: str,
-    timeout: int = 120,
+    requirements: str = "",
+    timeout: int = 180,
 ) -> dict:
     """Write files + a test into a fresh E2B sandbox, run pytest, return result.
 
-    Returns {exit_code, stdout, stderr}. exit_code != 0 means the test FAILED
-    (which is what we WANT when running the proving test on the original buggy code).
+    If `requirements` is provided, it's written as requirements.txt and pip-installed
+    before the test runs — so verification works on real repos with dependencies.
     """
-    sbx = Sandbox.create(timeout=timeout + 30)
+    sbx = Sandbox.create(timeout=timeout + 60)
     try:
         for path, content in files.items():
             sbx.files.write(f"{WORKDIR}/{path}", content)
         sbx.files.write(f"{WORKDIR}/{test_filename}", test_content)
 
-        cmd = "pip install -q pytest >/dev/null 2>&1; python -m pytest -q"
+        install = "pip install -q pytest"
+        if requirements.strip():
+            sbx.files.write(f"{WORKDIR}/requirements.txt", requirements)
+            install += " && pip install -q -r requirements.txt"
+        cmd = f"{install} >/dev/null 2>&1; python -m pytest -q"
+
         try:
             res = sbx.commands.run(cmd, cwd=WORKDIR, timeout=timeout)
             return {"exit_code": res.exit_code, "stdout": res.stdout, "stderr": res.stderr}
