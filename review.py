@@ -8,6 +8,7 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.types import Command
 
 from policygate.graph.build import build_graph, _empty_state
+from langgraph.store.postgres import PostgresStore
 
 REPO = "shehzan18/policy-flow-demo"
 
@@ -17,9 +18,11 @@ def main():
     pr_id = sys.argv[2] if len(sys.argv) > 2 else "1"
     url = os.environ["DATABASE_URL"]
 
-    with PostgresSaver.from_conn_string(url) as saver:
-        saver.setup()  # idempotent: creates checkpoint tables on first run
-        app = build_graph(checkpointer=saver)
+    with PostgresSaver.from_conn_string(url) as saver, \
+         PostgresStore.from_conn_string(url) as store:
+        saver.setup()
+        store.setup()
+        app = build_graph(checkpointer=saver, store=store)
         cfg = {"configurable": {"thread_id": f"pr-{pr_id}"}}
 
         if mode == "run":

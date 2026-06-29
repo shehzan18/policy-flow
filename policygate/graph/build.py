@@ -44,7 +44,8 @@ def route_after_verify(state: PRState) -> str:
 
 # ---- graph assembly -------------------------------------------------------
 
-def build_graph(checkpointer=None):
+def build_graph(checkpointer=None, store=None):
+
     g = StateGraph(PRState)
 
     g.add_node("ingest", ingest)
@@ -77,7 +78,7 @@ def build_graph(checkpointer=None):
     g.add_edge("git_ops", "report")
     g.add_edge("report", END)
 
-    return g.compile(checkpointer=checkpointer)
+    return g.compile(checkpointer=checkpointer, store=store)
 
 
 def _empty_state(pr_id: str, repo: str) -> PRState:

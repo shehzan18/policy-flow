@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from policygate.graph.state import PRState
 from policygate.github.client import post_pr_comment
+from langgraph.store.base import BaseStore
+from policygate.memory.store import record_decision
 
 
 def _approval_comment(v: dict) -> str:
@@ -25,7 +27,7 @@ def _rejection_comment(v: dict) -> str:
     )
 
 
-def git_ops(state: PRState) -> dict:
+def git_ops(state: PRState, *, store: BaseStore) -> dict:
     decision = state.get("human_decision")
     verified = [v for v in state["violations"] if v["status"] == "verified"]
     if not verified:
@@ -44,5 +46,9 @@ def git_ops(state: PRState) -> dict:
             print(f"[git_ops]   {v['rule_id']} -> REJECTED (feedback recorded)")
         else:
             nv = dict(v)
+        
+        if decision in ("approve", "reject"):
+            record_decision(store, state["repo"], v["rule_id"], decision)
         updated.append(nv)
+        
     return {"violations": updated}
